@@ -7,10 +7,12 @@
     #include <wx/catch_cppunit.h>
     #include <wx/dvrenderers.h>
     #include <wx/fmappriv.h>
+    #include <wx/memory.h>
     #include <wx/setup_inc.h>
     #include <wx/setup_redirect.h>
     #include <wx/variantbase.h>
     #include <wx/vms_x_fix.h>
+    #include <wx/webview_chromium_impl.h>
     #include <wx/xpmhand.h>
 */
 
@@ -40,6 +42,7 @@
 #include <wx/bannerwindow.h>
 #include <wx/base64.h>
 #include <wx/bitmap.h>
+#include <wx/bmpbndl.h>
 #include <wx/bmpbuttn.h>
 #include <wx/bmpcbox.h>
 #include <wx/bookctrl.h>
@@ -74,6 +77,7 @@
 #include <wx/combo.h>
 #include <wx/commandlinkbutton.h>
 #include <wx/compiler.h>
+#include <wx/compositebookctrl.h>
 #include <wx/compositewin.h>
 #include <wx/confbase.h>
 #include <wx/config.h>
@@ -81,6 +85,7 @@
 #include <wx/control.h>
 #include <wx/convauto.h>
 #include <wx/cpp.h>
+#include <wx/creddlg.h>
 #include <wx/crt.h>
 #include <wx/cshelp.h>
 #include <wx/ctrlsub.h>
@@ -122,7 +127,6 @@
 #include <wx/dynlib.h>
 #include <wx/dynload.h>
 #include <wx/editlbox.h>
-#include <wx/effects.h>
 #include <wx/encconv.h>
 #include <wx/encinfo.h>
 #include <wx/eventfilter.h>
@@ -136,6 +140,7 @@
 #include <wx/fileconf.h>
 #include <wx/filectrl.h>
 #include <wx/filedlg.h>
+#include <wx/filedlgcustomize.h>
 #include <wx/filefn.h>
 #include <wx/file.h>
 #include <wx/filehistory.h>
@@ -153,6 +158,7 @@
 #include <wx/fontutil.h>
 #include <wx/frame.h>
 #include <wx/fs_arc.h>
+#include <wx/fs_data.h>
 #include <wx/fs_filter.h>
 #include <wx/fs_inet.h>
 #include <wx/fs_mem.h>
@@ -213,17 +219,15 @@
 #include <wx/listbox.h>
 #include <wx/listctrl.h>
 #include <wx/list.h>
+#include <wx/localedefs.h>
 #include <wx/log.h>
 #include <wx/longlong.h>
 #include <wx/lzmastream.h>
 #include <wx/math.h>
-/* Intentionally excluded to avoid deprecation warnings.
 #include <wx/matrix.h>
-*/
 #include <wx/mdi.h>
 #include <wx/mediactrl.h>
 #include <wx/memconf.h>
-#include <wx/memory.h>
 #include <wx/memtext.h>
 #include <wx/menu.h>
 #include <wx/menuitem.h>
@@ -321,6 +325,7 @@
 #include <wx/statline.h>
 #include <wx/stattext.h>
 #include <wx/statusbr.h>
+#include <wx/stc/stc.h>
 #include <wx/stdpaths.h>
 #include <wx/stdstream.h>
 #include <wx/stockitem.h>
@@ -328,7 +333,6 @@
 #include <wx/strconv.h>
 #include <wx/stream.h>
 #include <wx/string.h>
-#include <wx/stringimpl.h>
 #include <wx/stringops.h>
 #include <wx/strvararg.h>
 #include <wx/sysopt.h>
@@ -368,6 +372,7 @@
 #include <wx/typeinfo.h>
 #include <wx/types.h>
 #include <wx/uiaction.h>
+#include <wx/uilocale.h>
 #include <wx/unichar.h>
 #include <wx/uri.h>
 #include <wx/url.h>
@@ -386,6 +391,8 @@
 #include <wx/volume.h>
 #include <wx/vscroll.h>
 #include <wx/weakref.h>
+#include <wx/webrequest.h>
+#include <wx/webview_chromium.h>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
 #include <wx/webview.h>

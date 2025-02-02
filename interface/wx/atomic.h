@@ -11,13 +11,13 @@
 // ============================================================================
 
 /** @addtogroup group_funcmacro_atomic */
-//@{
+///@{
 
 /**
     This function increments @a value in an atomic manner.
 
-    @note It is recommended to use @c std::atomic available in C++11 and later
-    instead of this function in any new code.
+    @note It is recommended to use @c std::atomic instead of this function in
+    any new code.
 
     Whenever possible wxWidgets provides an efficient, CPU-specific,
     implementation of this function. If such implementation is available, the
@@ -44,5 +44,5 @@ wxInt32 wxAtomicInc(wxAtomicInt& value);
 */
 wxInt32 wxAtomicDec(wxAtomicInt& value);
 
-//@}
+///@}
 

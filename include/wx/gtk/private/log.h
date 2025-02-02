@@ -30,10 +30,17 @@ class LogFilter
 public:
     LogFilter()
     {
-        m_next = NULL;
+        m_next = nullptr;
     }
 
-    // Function to call to install this filter as the active one.
+    // Allow installing our own log writer function, we don't do it by default
+    // because this results in a fatal error if the application had already
+    // called g_log_set_writer_func() on its own.
+    static void Allow() { ms_allowed = true; }
+
+    // Function to call to install this filter as the active one if we're
+    // allowed to do this, i.e. if Allow() had been called before.
+    //
     // Does nothing and just returns false if run-time glib version is too old.
     bool Install();
 
@@ -56,6 +63,10 @@ private:
                   gsize            n_fields,
                   gpointer         user_data);
 
+    // False initially, indicating that we're not allowed to install our own
+    // logging function.
+    static bool ms_allowed;
+
     // False initially, set to true when we install wx_log_writer() as the log
     // writer. Once we do it, we never change it any more.
     static bool ms_installed;
@@ -74,7 +85,7 @@ private:
 class LogFilterByLevel : public LogFilter
 {
 public:
-    LogFilterByLevel() { }
+    LogFilterByLevel() = default;
 
     void SetLevelToIgnore(int flags)
     {
@@ -84,7 +95,7 @@ public:
 protected:
     bool Filter(GLogLevelFlags log_level,
                 const GLogField* WXUNUSED(fields),
-                gsize WXUNUSED(n_fields)) const wxOVERRIDE
+                gsize WXUNUSED(n_fields)) const override
     {
         return log_level & m_logLevelToIgnore;
     }
@@ -118,7 +129,7 @@ public:
 protected:
     bool Filter(GLogLevelFlags WXUNUSED(log_level),
                 const GLogField* fields,
-                gsize n_fields) const wxOVERRIDE;
+                gsize n_fields) const override;
 
 private:
     const char* const m_message;

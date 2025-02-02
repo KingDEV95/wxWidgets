@@ -275,7 +275,7 @@ wxFSFile* wxLocalFSHandler::OpenFile(wxFileSystem& WXUNUSED(fs), const wxString&
     wxString fullpath = ms_root + fn.GetFullPath();
 
     if (!wxFileExists(fullpath))
-        return NULL;
+        return nullptr;
 
     // we need to check whether we can really read from this file, otherwise
     // wxFSFile is not going to work
@@ -289,7 +289,7 @@ wxFSFile* wxLocalFSHandler::OpenFile(wxFileSystem& WXUNUSED(fs), const wxString&
     if ( !is->IsOk() )
     {
         delete is;
-        return NULL;
+        return nullptr;
     }
 
     return new wxFSFile(is,
@@ -334,7 +334,8 @@ wxList wxFileSystem::m_Handlers;
 
 wxFileSystem::~wxFileSystem()
 {
-    WX_CLEAR_HASH_MAP(wxFSHandlerHash, m_LocalHandlers)
+    for ( const auto& kv : m_LocalHandlers )
+        delete kv.second;
 }
 
 
@@ -455,12 +456,12 @@ wxFileSystemHandler *wxFileSystem::MakeLocal(wxFileSystemHandler *h)
 wxFSFile* wxFileSystem::OpenFile(const wxString& location, int flags)
 {
     if ((flags & wxFS_READ) == 0)
-        return NULL;
+        return nullptr;
 
     wxString loc = MakeCorrectPath(location);
     unsigned i, ln;
     wxChar meta;
-    wxFSFile *s = NULL;
+    wxFSFile *s = nullptr;
     wxList::compatibility_iterator node;
 
     ln = loc.length();
@@ -495,7 +496,7 @@ wxFSFile* wxFileSystem::OpenFile(const wxString& location, int flags)
     }
 
     // if failed, try absolute paths :
-    if (s == NULL)
+    if (s == nullptr)
     {
         node = m_Handlers.GetFirst();
         while (node)
@@ -528,7 +529,7 @@ wxString wxFileSystem::FindFirst(const wxString& spec, int flags)
     wxList::compatibility_iterator node;
     wxString spec2(spec);
 
-    m_FindFileHandler = NULL;
+    m_FindFileHandler = nullptr;
 
     for (int i = spec2.length()-1; i >= 0; i--)
         if (spec2[(unsigned int) i] == wxT('\\')) spec2.GetWritableChar(i) = wxT('/'); // Want to be windows-safe
@@ -564,7 +565,7 @@ wxString wxFileSystem::FindFirst(const wxString& spec, int flags)
 
 wxString wxFileSystem::FindNext()
 {
-    if (m_FindFileHandler == NULL) return wxEmptyString;
+    if (m_FindFileHandler == nullptr) return wxEmptyString;
     else return m_FindFileHandler -> FindNext();
 }
 
@@ -613,12 +614,12 @@ void wxFileSystem::AddHandler(wxFileSystemHandler *handler)
 wxFileSystemHandler* wxFileSystem::RemoveHandler(wxFileSystemHandler *handler)
 {
     // if handler has already been removed (or deleted)
-    // we return NULL. This is by design in case
+    // we return nullptr. This is by design in case
     // CleanUpHandlers() is called before RemoveHandler
     // is called, as we cannot control the order
     // which modules are unloaded
     if (!m_Handlers.DeleteObject(handler))
-        return NULL;
+        return nullptr;
 
     return handler;
 }
@@ -639,7 +640,7 @@ bool wxFileSystem::HasHandlerForPath(const wxString &location)
 
 void wxFileSystem::CleanUpHandlers()
 {
-    WX_CLEAR_LIST(wxList, m_Handlers);
+    wxClearList(m_Handlers);
 }
 
 // Returns the native path for a file URL
@@ -664,17 +665,17 @@ class wxFileSystemModule : public wxModule
     public:
         wxFileSystemModule() :
             wxModule(),
-            m_handler(NULL)
+            m_handler(nullptr)
         {
         }
 
-        virtual bool OnInit() wxOVERRIDE
+        virtual bool OnInit() override
         {
             m_handler = new wxLocalFSHandler;
             wxFileSystem::AddHandler(m_handler);
             return true;
         }
-        virtual void OnExit() wxOVERRIDE
+        virtual void OnExit() override
         {
             delete wxFileSystem::RemoveHandler(m_handler);
 

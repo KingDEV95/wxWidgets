@@ -21,6 +21,7 @@ set(TEST_GUI_SRC
     graphics/measuring.cpp
     graphics/affinematrix.cpp
     graphics/boundingbox.cpp
+    graphics/clipper.cpp
     graphics/clippingbox.cpp
     graphics/coords.cpp
     graphics/graphbitmap.cpp
@@ -58,6 +59,7 @@ set(TEST_GUI_SRC
     controls/ownerdrawncomboboxtest.cpp
     controls/pickerbasetest.cpp
     controls/pickertest.cpp
+    controls/propgridtest.cpp
     controls/radioboxtest.cpp
     controls/radiobuttontest.cpp
     controls/rearrangelisttest.cpp
@@ -146,8 +148,14 @@ set(TEST_GUI_DATA
     horse.tif
     horse.xpm
     image/bitfields.bmp
+    image/bitfields-alpha.bmp
     image/8bpp-colorsused-large.bmp
     image/8bpp-colorsused-negative.bmp
+    image/32bpp_rgb.bmp
+    image/32bpp_rgb.ico
+    image/32bpp_rgb_a0.ico
+    image/badrle4.bmp
+    image/rgb16-3103.bmp
     image/rle4-delta-320x240.bmp
     image/rle8-delta-320x240-expected.bmp
     image/rle8-delta-320x240.bmp
@@ -194,12 +202,26 @@ set(TEST_GUI_DATA
     image/toucan_mono_255_255_255.png
     image/width-times-height-overflow.bmp
     image/width_height_32_bit_overflow.pgm
+    image/bad_truncated.gif
     intl/ja/internat.mo
     intl/ja/internat.po
     )
 
-wx_add_test(test_gui CONSOLE_GUI ${TEST_GUI_SRC}
+set(TEST_GUI_RES_BUNDLE
+    horse.png
+    ../include/wx/msw/bullseye.cur
+    )
+
+# On macOS create an .app bundle so the resources can be added.
+# On other platforms, just use a console app with gui libraries.
+set(APP_TYPE)
+if(NOT APPLE)
+    set(APP_TYPE CONSOLE_GUI)
+endif()
+
+wx_add_test(test_gui ${APP_TYPE} ${TEST_GUI_SRC}
     DATA ${TEST_GUI_DATA}
+    RES_BUNDLE ${TEST_GUI_RES_BUNDLE}
     )
 if(wxUSE_AUI)
     wx_exe_link_libraries(test_gui wxaui)
@@ -227,4 +249,7 @@ if(wxUSE_SOCKETS)
 endif()
 if(wxUSE_WEBVIEW)
     wx_exe_link_libraries(test_gui wxwebview)
+endif()
+if(wxUSE_PROPGRID)
+    wx_exe_link_libraries(test_gui wxpropgrid)
 endif()

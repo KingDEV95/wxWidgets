@@ -87,7 +87,7 @@ public:
 
         The @a InputIterator template parameter must be an input iterator type.
         This method clears the vector and then adds all elements from @a first
-        until, not not including, @a last to it.
+        until, not including, @a last to it.
 
         @since 2.9.5
      */
@@ -257,10 +257,10 @@ public:
         either the copies of the given object @a v or @c value_type() objects
         until it becomes of size @a n.
      */
-    //@{
+    ///@{
     void resize(size_type n);
     void resize(size_type n, const value_type& v);
-    //@}
+    ///@}
 
     /**
         Free unused memory allocated by the vector.

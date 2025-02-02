@@ -340,6 +340,46 @@ TEST_CASE("wxArrayString", "[dynarray]")
     CHECK( a7.size() == 1 );
 
     wxCLANG_WARNING_RESTORE(self-assign-overloaded)
+
+    wxArrayString a8( { wxT("dog"), wxT("human"), wxT("condor"), wxT("thermit"), wxT("alligator") } );
+    CHECK( a8.size() == 5 );
+    CHECK( a8[1] == "human" );
+    CHECK( a8[4] == "alligator" );
+
+    a8 = { wxT("Foo") };    // Test operator=
+    CHECK( a8.size() == 1 );
+    CHECK( a8[0] == "Foo" );
+
+    // Same test with std::initializer_list<std::string>
+    wxArrayString a9( { std::string("dog"), std::string("human"), std::string("condor"), std::string("thermit"), std::string("alligator") } );
+    CHECK( a9.size() == 5 );
+}
+
+TEST_CASE("wxArrayString::Vector", "[dynarray][vector]")
+{
+    SECTION("wxString")
+    {
+        std::vector<wxString> vec{"first", "second"};
+        wxArrayString a(vec);
+        REQUIRE( a.size() == 2 );
+        CHECK( a[1] == "second" );
+    }
+
+    SECTION("string")
+    {
+        std::vector<std::string> vec{"third", "fourth"};
+        wxArrayString a(vec);
+        REQUIRE( a.size() == 2 );
+        CHECK( a[1] == "fourth" );
+    }
+
+    SECTION("AsVector")
+    {
+        wxArrayString a{"five", "six", "seven"};
+        const std::vector<wxString>& vec = a.AsVector();
+        REQUIRE( vec.size() == 3 );
+        CHECK( vec.at(2) == "seven" );
+    }
 }
 
 TEST_CASE("wxSortedArrayString", "[dynarray]")
@@ -558,10 +598,31 @@ TEST_CASE("wxObjArray", "[dynarray]")
         CHECK( bars.GetCount() == 0 );
         CHECK( Bar::GetNumber() == 1 );
 
-        bars.Add(new Bar(wxT("first bar in array")));
+        const wxString firstName(wxT("first bar in array"));
+        bars.Add(new Bar(firstName));
         bars.Add(bar, 2);
 
+        // Test that range for works with wxObjArray.
+        int count = 0;
+        for ( const auto& b : bars )
+        {
+            if ( !count )
+                CHECK( b.GetName() == firstName );
+
+            ++count;
+        }
+        CHECK( count == 3 );
+
         CHECK( bars.GetCount() == 3 );
+        CHECK( Bar::GetNumber() == 4 );
+
+        ArrayBars tmp;
+        bars.swap(tmp);
+        CHECK( bars.size() == 0 );
+        CHECK( Bar::GetNumber() == 4 );
+
+        bars.swap(tmp);
+        CHECK( bars.size() == 3 );
         CHECK( Bar::GetNumber() == 4 );
 
         bars.RemoveAt(1, bars.GetCount() - 1);
@@ -623,6 +684,9 @@ TEST_CASE("wxDynArray::" #name, "[dynarray]")                                 \
     CHECK( b.Index( 5 ) == 2 );                                      \
     CHECK( b.Index( 6 ) == wxNOT_FOUND );                            \
     CHECK( b.Index( 17 ) == 3 );                                     \
+                                                                     \
+    wxArray##name c({1,2,3});                                        \
+    CHECK(c.size() == 3);                                            \
 }
 
 TestArrayOf(UShort)

@@ -45,7 +45,7 @@ public:
     wxAuiCommandCapture() { m_lastId = 0; }
     int GetCommandId() const { return m_lastId; }
 
-    bool ProcessEvent(wxEvent& evt) wxOVERRIDE
+    bool ProcessEvent(wxEvent& evt) override
     {
         if (evt.GetEventType() == wxEVT_MENU)
         {
@@ -177,7 +177,7 @@ wxAuiGenericTabArt::wxAuiGenericTabArt()
     m_selectedFont.SetWeight(wxFONTWEIGHT_BOLD);
     m_measuringFont = m_selectedFont;
 
-    m_fixedTabWidth = wxWindow::FromDIP(100, NULL);
+    m_fixedTabWidth = wxWindow::FromDIP(100, nullptr);
     m_tabCtrlHeight = 0;
     m_flags = 0;
 
@@ -656,7 +656,7 @@ void wxAuiGenericTabArt::DrawTab(wxDC& dc,
 
 int wxAuiGenericTabArt::GetIndentSize()
 {
-    return wxWindow::FromDIP(5, NULL);
+    return wxWindow::FromDIP(5, nullptr);
 }
 
 int wxAuiGenericTabArt::GetBorderWidth(wxWindow* wnd)
@@ -666,7 +666,7 @@ int wxAuiGenericTabArt::GetBorderWidth(wxWindow* wnd)
     {
         wxAuiDockArt* art = mgr->GetArtProvider();
         if (art)
-            return art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE);
+            return wnd->FromDIP(art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE));
     }
     return 1;
 }
@@ -676,7 +676,7 @@ int wxAuiGenericTabArt::GetAdditionalBorderSpace(wxWindow* WXUNUSED(wnd))
     return 0;
 }
 
-wxSize wxAuiGenericTabArt::GetTabSize(wxDC& dc,
+wxSize wxAuiGenericTabArt::GetTabSize(wxReadOnlyDC& dc,
                                       wxWindow* wnd,
                                       const wxString& caption,
                                       const wxBitmapBundle& bitmap,
@@ -781,8 +781,7 @@ void wxAuiGenericTabArt::DrawButton(wxDC& dc,
     {
         rect.SetX(in_rect.x);
         rect.SetY(((in_rect.y + in_rect.height)/2) - (bmp.GetLogicalHeight()/2));
-        rect.SetWidth(bmp.GetLogicalWidth());
-        rect.SetHeight(bmp.GetLogicalHeight());
+        rect.SetSize(bmp.GetLogicalSize());
     }
     else
     {
@@ -817,7 +816,7 @@ int wxAuiGenericTabArt::ShowDropDown(wxWindow* wnd,
         if (caption.IsEmpty())
             caption = wxT(" ");
 
-        wxMenuItem* item = new wxMenuItem(NULL, 1000+i, caption);
+        wxMenuItem* item = new wxMenuItem(nullptr, 1000+i, caption);
         if (page.bitmap.IsOk())
             item->SetBitmap(page.bitmap.GetBitmapFor(wnd));
         menuPopup.Append(item);
@@ -847,7 +846,7 @@ int wxAuiGenericTabArt::GetBestTabCtrlSize(wxWindow* wnd,
                                            const wxAuiNotebookPageArray& pages,
                                            const wxSize& requiredBmp_size)
 {
-    wxClientDC dc(wnd);
+    wxInfoDC dc(wnd);
     dc.SetFont(m_measuringFont);
 
     // sometimes a standard bitmap size needs to be enforced, especially
@@ -920,6 +919,16 @@ void wxAuiGenericTabArt::SetActiveColour(const wxColour& colour)
     m_activeColour = colour;
 }
 
+wxFont wxAuiGenericTabArt::GetNormalFont() const
+{
+    return m_normalFont;
+}
+
+wxFont wxAuiGenericTabArt::GetSelectedFont() const
+{
+    return m_selectedFont;
+}
+
 // -- wxAuiSimpleTabArt class implementation --
 
 wxAuiSimpleTabArt::wxAuiSimpleTabArt()
@@ -938,7 +947,7 @@ wxAuiSimpleTabArt::wxAuiSimpleTabArt()
     m_measuringFont = m_selectedFont;
 
     m_flags = 0;
-    m_fixedTabWidth = wxWindow::FromDIP(100, NULL);
+    m_fixedTabWidth = wxWindow::FromDIP(100, nullptr);
 
     wxColour baseColour = wxSystemSettings::GetColour(wxSYS_COLOUR_3DFACE);
 
@@ -1212,7 +1221,7 @@ int wxAuiSimpleTabArt::GetBorderWidth(wxWindow* wnd)
     {
        wxAuiDockArt*  art = mgr->GetArtProvider();
         if (art)
-            return art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE);
+            return wnd->FromDIP(art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE));
     }
     return 1;
 }
@@ -1222,7 +1231,7 @@ int wxAuiSimpleTabArt::GetAdditionalBorderSpace(wxWindow* WXUNUSED(wnd))
     return 0;
 }
 
-wxSize wxAuiSimpleTabArt::GetTabSize(wxDC& dc,
+wxSize wxAuiSimpleTabArt::GetTabSize(wxReadOnlyDC& dc,
                                      wxWindow* wnd,
                                      const wxString& caption,
                                      const wxBitmapBundle& WXUNUSED(bitmap),
@@ -1305,8 +1314,7 @@ void wxAuiSimpleTabArt::DrawButton(wxDC& dc,
     {
         rect.SetX(in_rect.x);
         rect.SetY(((in_rect.y + in_rect.height)/2) - (bmp.GetLogicalHeight()/2));
-        rect.SetWidth(bmp.GetLogicalWidth());
-        rect.SetHeight(bmp.GetLogicalHeight());
+        rect.SetSize(bmp.GetLogicalSize());
     }
     else
     {
@@ -1370,7 +1378,7 @@ int wxAuiSimpleTabArt::GetBestTabCtrlSize(wxWindow* wnd,
                                           const wxAuiNotebookPageArray& WXUNUSED(pages),
                                           const wxSize& WXUNUSED(requiredBmp_size))
 {
-    wxClientDC dc(wnd);
+    wxInfoDC dc(wnd);
     dc.SetFont(m_measuringFont);
     int x_ext = 0;
     wxSize s = GetTabSize(dc,
@@ -1396,6 +1404,16 @@ void wxAuiSimpleTabArt::SetSelectedFont(const wxFont& font)
 void wxAuiSimpleTabArt::SetMeasuringFont(const wxFont& font)
 {
     m_measuringFont = font;
+}
+
+wxFont wxAuiSimpleTabArt::GetNormalFont() const
+{
+    return m_normalFont;
+}
+
+wxFont wxAuiSimpleTabArt::GetSelectedFont() const
+{
+    return m_selectedFont;
 }
 
 #endif // wxUSE_AUI

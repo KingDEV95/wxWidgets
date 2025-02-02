@@ -251,11 +251,7 @@ void TokenizerTestCase::StrtokCompat()
         if ( ttd.mode != wxTOKEN_STRTOK )
             continue;
 
-#if wxUSE_UNICODE
         wxWCharBuffer
-#else
-        wxCharBuffer
-#endif
             buf(ttd.str);
         wxChar *last;
         wxChar *s = wxStrtok(buf.data(), ttd.delims, &last);
@@ -264,7 +260,7 @@ void TokenizerTestCase::StrtokCompat()
         while ( tkz.HasMoreTokens() )
         {
             CPPUNIT_ASSERT_EQUAL( wxString(s), tkz.GetNextToken() );
-            s = wxStrtok(NULL, ttd.delims, &last);
+            s = wxStrtok(nullptr, ttd.delims, &last);
         }
     }
 }
@@ -275,15 +271,15 @@ void TokenizerTestCase::CopyObj()
     wxStringTokenizer tkzSrc(wxT("first:second:third:fourth"), wxT(":"));
     while ( tkzSrc.HasMoreTokens() )
     {
-        wxString tokenSrc = tkzSrc.GetNextToken();
+        tkzSrc.GetNextToken();
         wxStringTokenizer tkz = tkzSrc;
 
         CPPUNIT_ASSERT_EQUAL( tkzSrc.GetPosition(), tkz.GetPosition() );
         CPPUNIT_ASSERT_EQUAL( tkzSrc.GetString(), tkz.GetString() );
 
         // Change the state of both objects and compare again...
-        tokenSrc = tkzSrc.GetNextToken();
-        wxString token = tkz.GetNextToken();
+        tkzSrc.GetNextToken();
+        tkz.GetNextToken();
 
         CPPUNIT_ASSERT_EQUAL( tkzSrc.GetPosition(), tkz.GetPosition() );
         CPPUNIT_ASSERT_EQUAL( tkzSrc.GetString(), tkz.GetString() );
@@ -297,15 +293,15 @@ void TokenizerTestCase::AssignObj()
     wxStringTokenizer tkz;
     while ( tkzSrc.HasMoreTokens() )
     {
-        wxString tokenSrc = tkzSrc.GetNextToken();
+        tkzSrc.GetNextToken();
         tkz = tkzSrc;
 
         CPPUNIT_ASSERT_EQUAL( tkzSrc.GetPosition(), tkz.GetPosition() );
         CPPUNIT_ASSERT_EQUAL( tkzSrc.GetString(), tkz.GetString() );
 
         // Change the state of both objects and compare again...
-        tokenSrc = tkzSrc.GetNextToken();
-        wxString token = tkz.GetNextToken();
+        tkzSrc.GetNextToken();
+        tkz.GetNextToken();
 
         CPPUNIT_ASSERT_EQUAL( tkzSrc.GetPosition(), tkz.GetPosition() );
         CPPUNIT_ASSERT_EQUAL( tkzSrc.GetString(), tkz.GetString() );

@@ -11,7 +11,8 @@
 class WXDLLIMPEXP_CORE wxMDIParentFrame : public wxMDIParentFrameBase
 {
 public:
-    wxMDIParentFrame();
+    wxMDIParentFrame() = default;
+
     wxMDIParentFrame(wxWindow *parent,
                      wxWindowID id,
                      const wxString& title,
@@ -33,10 +34,8 @@ public:
 
     static bool IsTDI() { return false; }
 
-    virtual void ActivateNext() wxOVERRIDE;
-    virtual void ActivatePrevious() wxOVERRIDE;
-
-protected:
+    virtual void ActivateNext() override;
+    virtual void ActivatePrevious() override;
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxMDIParentFrame);
@@ -47,7 +46,8 @@ private:
 class WXDLLIMPEXP_CORE wxMDIChildFrame : public wxMDIChildFrameBase
 {
 public:
-    wxMDIChildFrame();
+    wxMDIChildFrame() = default;
+
     wxMDIChildFrame(wxMDIParentFrame *parent,
                     wxWindowID id,
                     const wxString& title,
@@ -64,7 +64,7 @@ public:
                 long style = wxDEFAULT_FRAME_STYLE,
                 const wxString& name = wxASCII_STR(wxFrameNameStr));
 
-    virtual void Activate() wxOVERRIDE;
+    virtual void Activate() override;
 
     wxDECLARE_DYNAMIC_CLASS(wxMDIChildFrame);
 };
@@ -74,9 +74,10 @@ public:
 class WXDLLIMPEXP_CORE wxMDIClientWindow : public wxMDIClientWindowBase
 {
 public:
-    wxMDIClientWindow();
+    wxMDIClientWindow() = default;
 
-    virtual bool CreateClient(wxMDIParentFrame *parent, long style = wxVSCROLL | wxHSCROLL) wxOVERRIDE;
+    virtual bool CreateClient(wxMDIParentFrame *parent, long style = wxVSCROLL | wxHSCROLL) override;
+
     wxDECLARE_DYNAMIC_CLASS(wxMDIClientWindow);
 };
 

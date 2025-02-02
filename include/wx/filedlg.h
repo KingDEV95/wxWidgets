@@ -2,7 +2,6 @@
 // Name:        wx/filedlg.h
 // Purpose:     wxFileDialog base header
 // Author:      Robert Roebling
-// Modified by:
 // Created:     8/17/99
 // Copyright:   (c) Robert Roebling
 // Licence:     wxWindows licence
@@ -90,7 +89,7 @@ public:
         Create(parent, message, defaultDir, defaultFile, wildCard, style, pos, sz, name);
     }
 
-    virtual ~wxFileDialogBase() {}
+    virtual ~wxFileDialogBase() = default;
 
 
     bool Create(wxWindow *parent,
@@ -210,11 +209,11 @@ protected:
     wxWindow* CreateExtraControlWithParent(wxWindow* parent) const;
     // returns true if control is created, also sets m_extraControl
     bool CreateExtraControl();
-    // destroy m_extraControl and reset it to NULL
+    // destroy m_extraControl and reset it to nullptr
     void DestroyExtraControl();
     // return true if SetExtraControlCreator() was called
     bool HasExtraControlCreator() const
-        { return m_extraControlCreator != NULL; }
+        { return m_extraControlCreator != nullptr; }
     // Helper function for native file dialog usage where no wx events
     // are processed.
     void UpdateExtraControlUI();
@@ -243,7 +242,7 @@ wxFileSelector(const wxString& message = wxASCII_STR(wxFileSelectorPromptStr),
                const wxString& default_extension = wxEmptyString,
                const wxString& wildcard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
                int flags = 0,
-               wxWindow *parent = NULL,
+               wxWindow *parent = nullptr,
                int x = wxDefaultCoord, int y = wxDefaultCoord);
 
 // An extended version of wxFileSelector
@@ -251,10 +250,10 @@ WXDLLIMPEXP_CORE wxString
 wxFileSelectorEx(const wxString& message = wxASCII_STR(wxFileSelectorPromptStr),
                  const wxString& default_path = wxEmptyString,
                  const wxString& default_filename = wxEmptyString,
-                 int *indexDefaultExtension = NULL,
+                 int *indexDefaultExtension = nullptr,
                  const wxString& wildcard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
                  int flags = 0,
-                 wxWindow *parent = NULL,
+                 wxWindow *parent = nullptr,
                  int x = wxDefaultCoord, int y = wxDefaultCoord);
 
 // Ask for filename to load
@@ -262,14 +261,14 @@ WXDLLIMPEXP_CORE wxString
 wxLoadFileSelector(const wxString& what,
                    const wxString& extension,
                    const wxString& default_name = wxEmptyString,
-                   wxWindow *parent = NULL);
+                   wxWindow *parent = nullptr);
 
 // Ask for filename to save
 WXDLLIMPEXP_CORE wxString
 wxSaveFileSelector(const wxString& what,
                    const wxString& extension,
                    const wxString& default_name = wxEmptyString,
-                   wxWindow *parent = NULL);
+                   wxWindow *parent = nullptr);
 
 
 #if defined (__WXUNIVERSAL__)
@@ -277,12 +276,8 @@ wxSaveFileSelector(const wxString& what,
     #include "wx/generic/filedlgg.h"
 #elif defined(__WXMSW__)
     #include "wx/msw/filedlg.h"
-#elif defined(__WXMOTIF__)
-    #include "wx/motif/filedlg.h"
-#elif defined(__WXGTK20__)
-    #include "wx/gtk/filedlg.h"     // GTK+ > 2.4 has native version
 #elif defined(__WXGTK__)
-    #include "wx/gtk1/filedlg.h"
+    #include "wx/gtk/filedlg.h"     // GTK+ > 2.4 has native version
 #elif defined(__WXMAC__)
     #include "wx/osx/filedlg.h"
 #elif defined(__WXQT__)

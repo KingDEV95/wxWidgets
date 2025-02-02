@@ -2,7 +2,6 @@
 // Name:        text.cpp
 // Purpose:     TextCtrl wxWidgets sample
 // Author:      Robert Roebling
-// Modified by:
 // Copyright:   (c) Robert Roebling, Julian Smart, Vadim Zeitlin
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
@@ -52,7 +51,7 @@
 class MyApp: public wxApp
 {
 public:
-    bool OnInit() wxOVERRIDE;
+    bool OnInit() override;
 };
 
 // a text ctrl which allows to call different wxTextCtrl functions
@@ -153,9 +152,13 @@ public:
 #endif // wxUSE_LOG
 
 private:
+#if wxUSE_CLIPBOARD
+    void SelectClipboardSelection();
+#endif // wxUSE_CLIPBOARD
+
     // get the currently focused text control or return the default one
     // (m_multitext) is no text ctrl has focus -- in any case, returns
-    // something non NULL
+    // something non null
     wxTextCtrl *GetFocusedText() const;
 };
 
@@ -280,6 +283,8 @@ public:
 #endif // wxUSE_LOG
     void OnFileSave(wxCommandEvent& event);
     void OnFileLoad(wxCommandEvent& event);
+    void OnFileSaveRTF(wxCommandEvent& event);
+    void OnFileLoadRTF(wxCommandEvent& event);
     void OnRichTextTest(wxCommandEvent& event);
 
     void OnSetEditable(wxCommandEvent& event);
@@ -318,6 +323,16 @@ public:
     void OnSetText(wxCommandEvent& WXUNUSED(event))
     {
         m_panel->m_text->SetValue("Hello, world! (what else did you expect?)");
+    }
+
+    void OnSetRTF(wxCommandEvent& WXUNUSED(event))
+    {
+        m_panel->m_textrich->SetRTFValue(R"({\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\colortbl ;\red79\green129\blue189;\red255\green0\blue0;\red192\green192\blue192;}
+{\*\generator Riched20 10.0.22621}\viewkind4\uc1
+ \pard\sa200\sl276\slmult1\cf1\b\i\f0\fs22\lang9 wxWidgets 3.3\cf0\b0\i0\par
+\cf2 A \highlight3\ul cross-platform \highlight0\ulnone GUI library which uses \ul\b native\ulnone\b0  controls.\cf0\par
+})");
     }
 
     void OnChangeText(wxCommandEvent& WXUNUSED(event))
@@ -399,7 +414,9 @@ enum
     TEXT_QUIT = wxID_EXIT,
     TEXT_ABOUT = wxID_ABOUT,
     TEXT_LOAD = 101,
+    TEXT_LOAD_RTF,
     TEXT_SAVE,
+    TEXT_SAVE_RTF,
     TEXT_CLEAR,
     TEXT_RICH_TEXT_TEST,
 
@@ -407,6 +424,7 @@ enum
     TEXT_CLIPBOARD_COPY = 200,
     TEXT_CLIPBOARD_PASTE,
     TEXT_CLIPBOARD_VETO,
+    TEXT_CLIPBOARD_USE_PRIMARY,
 
     // tooltip menu
     TEXT_TOOLTIPS_SETDELAY = 300,
@@ -433,6 +451,7 @@ enum
     TEXT_REPLACE,
     TEXT_SELECT,
     TEXT_SET,
+    TEXT_SET_RTF,
     TEXT_CHANGE,
 
     // log menu
@@ -459,6 +478,14 @@ bool MyApp::OnInit()
                       "Save the text control contents to file");
     file_menu->Append(TEXT_LOAD, "&Load file\tCtrl-O",
                       "Load the sample file into text control");
+
+#ifdef wxHAS_TEXTCTRL_RTF
+        file_menu->Append(TEXT_SAVE_RTF, "&Save file as RTF",
+            "Save the text control contents to file");
+        file_menu->Append(TEXT_LOAD_RTF, "&Load RTF file",
+            "Load the sample file into text control");
+#endif
+
     file_menu->AppendSeparator();
     file_menu->Append(TEXT_RICH_TEXT_TEST, "Show Rich Text Editor");
     file_menu->AppendSeparator();
@@ -488,6 +515,10 @@ bool MyApp::OnInit()
     menuClipboard->Append(TEXT_CLIPBOARD_PASTE, "&Paste\tCtrl-Shift-V",
                           "Paste from clipboard to the text control");
     menuClipboard->AppendSeparator();
+    menuClipboard->AppendCheckItem(TEXT_CLIPBOARD_USE_PRIMARY,
+        "Use &primary selection\tCtrl-Shift-P",
+        "If checked, use primary selection instead of clipboard");
+    menuClipboard->AppendSeparator();
     menuClipboard->AppendCheckItem(TEXT_CLIPBOARD_VETO, "Vet&o\tCtrl-Shift-O",
                                    "Veto all clipboard operations");
     menu_bar->Append(menuClipboard, "&Clipboard");
@@ -502,6 +533,10 @@ bool MyApp::OnInit()
     menuText->Append(TEXT_SELECT, "&Select characters 4 to 8\tCtrl-I");
     menuText->Append(TEXT_SET, "&Set the first text zone value\tCtrl-E");
     menuText->Append(TEXT_CHANGE, "&Change the first text zone value\tShift-Ctrl-E");
+#ifdef wxHAS_TEXTCTRL_RTF
+        menuText->AppendSeparator();
+        menuText->Append(TEXT_SET_RTF, "Set the rich text zone value from rich text formatted content");
+#endif
     menuText->AppendSeparator();
     menuText->Append(TEXT_MOVE_ENDTEXT, "Move cursor to the end of &text");
     menuText->Append(TEXT_MOVE_ENDENTRY, "Move cursor to the end of &entry");
@@ -717,9 +752,7 @@ void MyTextCtrl::LogKeyEvent(const wxString& name, wxKeyEvent& event) const
         }
     }
 
-#if wxUSE_UNICODE
     key += wxString::Format(" (Unicode: %#04x)", event.GetUnicodeKey());
-#endif // wxUSE_UNICODE
 
     wxLogMessage( "%s event: %s (flags = %c%c%c%c)",
                   name,
@@ -1184,11 +1217,7 @@ MyPanel::MyPanel( wxFrame *frame, int x, int y, int w, int h )
                 m_horizontal->SetFont(wxFontInfo(18)
                                         .Family(wxFONTFAMILY_SWISS)
                                         .Encoding(wxFONTENCODING_CP1251));
-#if wxUSE_UNICODE
                 m_horizontal->AppendText(L"\x0412\x0430\x0434\x0438\x043c \x0426");
-#else
-                m_horizontal->AppendText("\313\301\326\305\324\323\321 \325\304\301\336\316\331\315");
-#endif
         }
     }
     else
@@ -1311,17 +1340,23 @@ wxTextCtrl *MyPanel::GetFocusedText() const
 {
     wxWindow *win = FindFocus();
 
-    wxTextCtrl *text = win ? wxDynamicCast(win, wxTextCtrl) : NULL;
+    wxTextCtrl *text = win ? wxDynamicCast(win, wxTextCtrl) : nullptr;
     return text ? text : m_multitext;
 }
 
 #if wxUSE_CLIPBOARD
+void MyPanel::SelectClipboardSelection()
+{
+    wxFrame *frame = wxDynamicCast(wxGetTopLevelParent(this), wxFrame);
+    wxCHECK_RET( frame, "no parent frame?" );
+
+    wxTheClipboard->UsePrimarySelection(
+        frame->GetMenuBar()->IsChecked(TEXT_CLIPBOARD_USE_PRIMARY));
+}
+
 void MyPanel::DoPasteFromClipboard()
 {
-    // On X11, we want to get the data from the primary selection instead
-    // of the normal clipboard (which isn't normal under X11 at all). This
-    // call has no effect under MSW.
-    wxTheClipboard->UsePrimarySelection();
+    SelectClipboardSelection();
 
     if (!wxTheClipboard->Open())
     {
@@ -1375,10 +1410,7 @@ void MyPanel::DoPasteFromClipboard()
 
 void MyPanel::DoCopyToClipboard()
 {
-    // On X11, we want to get the data from the primary selection instead
-    // of the normal clipboard (which isn't normal under X11 at all). This
-    // call has no effect under MSW.
-    wxTheClipboard->UsePrimarySelection();
+    SelectClipboardSelection();
 
     wxString text( GetFocusedText()->GetStringSelection() );
 
@@ -1480,6 +1512,8 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(TEXT_ABOUT,  MyFrame::OnAbout)
     EVT_MENU(TEXT_SAVE,   MyFrame::OnFileSave)
     EVT_MENU(TEXT_LOAD,   MyFrame::OnFileLoad)
+    EVT_MENU(TEXT_SAVE_RTF, MyFrame::OnFileSaveRTF)
+    EVT_MENU(TEXT_LOAD_RTF, MyFrame::OnFileLoadRTF)
     EVT_MENU(TEXT_RICH_TEXT_TEST, MyFrame::OnRichTextTest)
 
     EVT_MENU(TEXT_LOG_KEY,  MyFrame::OnLogKey)
@@ -1527,13 +1561,14 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU(TEXT_GET_LINELENGTH,     MyFrame::OnGetLineLength)
 
     EVT_MENU(TEXT_SET,                MyFrame::OnSetText)
+    EVT_MENU(TEXT_SET_RTF,            MyFrame::OnSetRTF)
     EVT_MENU(TEXT_CHANGE,             MyFrame::OnChangeText)
 
     EVT_IDLE(MyFrame::OnIdle)
 wxEND_EVENT_TABLE()
 
 MyFrame::MyFrame(const wxString& title, int x, int y)
-       : wxFrame(NULL, wxID_ANY, title, wxPoint(x, y))
+       : wxFrame(nullptr, wxID_ANY, title, wxPoint(x, y))
 {
     SetIcon(wxICON(sample));
 
@@ -1642,9 +1677,9 @@ void MyFrame::OnFileSave(wxCommandEvent& WXUNUSED(event))
         // verify that the file length is correct
         wxFile file("dummy.txt");
         wxLogStatus(this,
-                    "Successfully saved file (text len = %lu, file size = %ld)",
-                    (unsigned long)m_panel->m_textrich->GetValue().length(),
-                    (long) file.Length());
+                    "Successfully saved file (text len = %zu, file size = %lld)",
+                    m_panel->m_textrich->GetValue().length(),
+                    file.Length());
 #endif
     }
     else
@@ -1663,6 +1698,37 @@ void MyFrame::OnFileLoad(wxCommandEvent& WXUNUSED(event))
     }
 }
 
+void MyFrame::OnFileSaveRTF(wxCommandEvent& WXUNUSED(event))
+{
+    if ( m_panel->m_textrich->SaveFile("dummy.rtf", wxTEXT_TYPE_RTF) )
+    {
+#if wxUSE_FILE
+        // verify that the file length is correct
+        wxFile file("dummy.rtf");
+        wxLogStatus(this,
+            "Successfully saved file (text len = %zu, file size = %lld)",
+            m_panel->m_textrich->GetValue().length(),
+            file.Length());
+#endif // wxUSE_FILE
+    }
+    else
+    {
+        wxLogStatus(this, "Couldn't save the file");
+    }
+}
+
+void MyFrame::OnFileLoadRTF(wxCommandEvent& WXUNUSED(event))
+{
+    if ( m_panel->m_textrich->LoadFile("dummy.rtf", wxTEXT_TYPE_RTF) )
+    {
+        wxLogStatus(this, "Successfully loaded file");
+    }
+    else
+    {
+        wxLogStatus(this, "Couldn't load the file");
+    }
+}
+
 void MyFrame::OnRichTextTest(wxCommandEvent& WXUNUSED(event))
 {
     RichTextFrame* frame = new RichTextFrame(this, "Rich Text Editor");
@@ -1672,7 +1738,7 @@ void MyFrame::OnRichTextTest(wxCommandEvent& WXUNUSED(event))
 void MyFrame::OnIdle( wxIdleEvent& event )
 {
     // track the window which has the focus in the status bar
-    static wxWindow *s_windowFocus = (wxWindow *)NULL;
+    static wxWindow *s_windowFocus = nullptr;
     wxWindow *focus = wxWindow::FindFocus();
     if ( focus && (focus != s_windowFocus) )
     {

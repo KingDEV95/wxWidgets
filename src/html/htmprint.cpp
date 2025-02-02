@@ -64,9 +64,9 @@
 
 wxHtmlDCRenderer::wxHtmlDCRenderer() : wxObject()
 {
-    m_DC = NULL;
+    m_DC = nullptr;
     m_Width = m_Height = 0;
-    m_Cells = NULL;
+    m_Cells = nullptr;
     m_ownsCells = false;
     m_Parser.SetFS(&m_FS);
     SetStandardFonts(DEFAULT_PRINT_FONT_SIZE);
@@ -277,7 +277,7 @@ wxHtmlPrintout::CheckFit(const wxSize& pageArea, const wxSize& docArea) const
         wxMessageDialog
             dlg
             (
-                NULL,
+                nullptr,
                 wxString::Format
                 (
                  _("The document \"%s\" doesn't fit on the page "
@@ -438,7 +438,7 @@ void wxHtmlPrintout::SetHtmlFile(const wxString& htmlfile)
     else
         ff = fs.OpenFile(htmlfile);
 
-    if (ff == NULL)
+    if (ff == nullptr)
     {
         wxLogError(htmlfile + _(": file does not exist!"));
         return;
@@ -559,22 +559,22 @@ wxString wxHtmlPrintout::TranslateHeader(const wxString& instr, int page)
     wxString r = instr;
     wxString num;
 
-    num.Printf(wxT("%i"), page);
-    r.Replace(wxT("@PAGENUM@"), num);
+    num.Printf("%i", page);
+    r.Replace("@PAGENUM@", num);
 
-    num.Printf(wxT("%lu"), (unsigned long)(m_PageBreaks.size() - 1));
-    r.Replace(wxT("@PAGESCNT@"), num);
+    num.Printf("%zu", m_PageBreaks.size() - 1);
+    r.Replace("@PAGESCNT@", num);
 
 #if wxUSE_DATETIME
     const wxDateTime now = wxDateTime::Now();
-    r.Replace(wxT("@DATE@"), now.FormatDate());
-    r.Replace(wxT("@TIME@"), now.FormatTime());
+    r.Replace("@DATE@", now.FormatDate());
+    r.Replace("@TIME@", now.FormatTime());
 #else
-    r.Replace(wxT("@DATE@"), wxEmptyString);
-    r.Replace(wxT("@TIME@"), wxEmptyString);
+    r.Replace("@DATE@", wxEmptyString);
+    r.Replace("@TIME@", wxEmptyString);
 #endif
 
-    r.Replace(wxT("@TITLE@"), GetTitle());
+    r.Replace("@TITLE@", GetTitle());
 
     return r;
 }
@@ -624,7 +624,7 @@ wxHtmlEasyPrinting::wxHtmlEasyPrinting(const wxString& name, wxWindow *parentWin
 {
     m_ParentWindow = parentWindow;
     m_Name = name;
-    m_PrintData = NULL;
+    m_PrintData = nullptr;
     m_PageSetupData = new wxPageSetupDialogData;
 
     m_PageSetupData->EnableMargins(true);
@@ -647,7 +647,7 @@ wxHtmlEasyPrinting::~wxHtmlEasyPrinting()
 
 wxPrintData *wxHtmlEasyPrinting::GetPrintData()
 {
-    if (m_PrintData == NULL)
+    if (m_PrintData == nullptr)
         m_PrintData = new wxPrintData();
     return m_PrintData;
 }
@@ -709,8 +709,9 @@ bool wxHtmlEasyPrinting::DoPreview(wxHtmlPrintout *printout1, wxHtmlPrintout *pr
     }
 
     wxPreviewFrame *frame = new wxPreviewFrame(preview, m_ParentWindow,
-                                               m_Name + _(" Preview"),
-                                               wxPoint(100, 100), wxSize(650, 500));
+                                wxString::Format(/* TRANSLATORS: %s may be a document title. */_("%s Preview"), m_Name),
+                                wxDefaultPosition,
+                                wxWindow::FromDIP(wxSize(650, 500), m_ParentWindow));
     frame->Centre(wxBOTH);
     frame->Initialize();
     frame->Show(true);
@@ -794,7 +795,7 @@ void wxHtmlEasyPrinting::SetFonts(const wxString& normal_face, const wxString& f
         for (int i = 0; i < 7; i++) m_FontsSizes[i] = sizes[i];
     }
     else
-        m_FontsSizes = NULL;
+        m_FontsSizes = nullptr;
 }
 
 void wxHtmlEasyPrinting::SetStandardFonts(int size,
@@ -841,8 +842,8 @@ class wxHtmlPrintingModule: public wxModule
     wxDECLARE_DYNAMIC_CLASS(wxHtmlPrintingModule);
 public:
     wxHtmlPrintingModule() : wxModule() {}
-    bool OnInit() wxOVERRIDE { return true; }
-    void OnExit() wxOVERRIDE { wxHtmlPrintout::CleanUpStatics(); }
+    bool OnInit() override { return true; }
+    void OnExit() override { wxHtmlPrintout::CleanUpStatics(); }
 };
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxHtmlPrintingModule, wxModule);

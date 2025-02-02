@@ -34,7 +34,7 @@ void wxBeginBusyCursor(const wxCursor *cursor)
 
 bool wxIsBusy()
 {
-    return QApplication::overrideCursor() != 0;
+    return QApplication::overrideCursor() != nullptr;
 }
 
 void wxEndBusyCursor()
@@ -50,7 +50,8 @@ class wxCursorRefData: public wxGDIRefData
 {
 public:
     wxCursorRefData() {}
-    wxCursorRefData( const wxCursorRefData& data ) : m_qtCursor(data.m_qtCursor) {}
+    wxCursorRefData( const wxCursorRefData& data )
+        : wxGDIRefData(), m_qtCursor(data.m_qtCursor) {}
     wxCursorRefData( QCursor &c ) : m_qtCursor(c) {}
 
     QCursor m_qtCursor;
@@ -158,11 +159,15 @@ void wxCursor::InitFromStock( wxStockCursor cursorId )
 void wxCursor::InitFromImage( const wxImage & image )
 {
     AllocExclusive();
-    GetHandle() = QCursor(*wxBitmap(image).GetHandle(),
+
+    wxBitmap bmp(image);
+    bmp.QtBlendMaskWithAlpha();
+
+    GetHandle() = QCursor(*bmp.GetHandle(),
                            image.HasOption(wxIMAGE_OPTION_CUR_HOTSPOT_X) ?
-                           image.GetOptionInt(wxIMAGE_OPTION_CUR_HOTSPOT_X) : -1,
+                           image.GetOptionInt(wxIMAGE_OPTION_CUR_HOTSPOT_X) : 0,
                            image.HasOption(wxIMAGE_OPTION_CUR_HOTSPOT_Y) ?
-                           image.GetOptionInt(wxIMAGE_OPTION_CUR_HOTSPOT_Y) : -1);
+                           image.GetOptionInt(wxIMAGE_OPTION_CUR_HOTSPOT_Y) : 0);
 }
 
 #endif // wxUSE_IMAGE

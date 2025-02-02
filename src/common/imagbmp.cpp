@@ -30,12 +30,13 @@
 #include "wx/wfstream.h"
 #include "wx/quantize.h"
 #include "wx/scopedarray.h"
-#include "wx/scopedptr.h"
 #include "wx/anidecod.h"
 #include "wx/private/icondir.h"
 
 // For memcpy
 #include <string.h>
+
+#include <memory>
 
 // ----------------------------------------------------------------------------
 // private functions
@@ -269,10 +270,10 @@ bool wxBMPHandler::SaveDib(wxImage *image,
     }
 
 #if wxUSE_PALETTE
-    wxScopedPtr<wxPalette> palette; // entries for quantized images
+    std::unique_ptr<wxPalette> palette; // entries for quantized images
 #endif // wxUSE_PALETTE
     wxScopedArray<wxUint8> rgbquad; // for the RGBQUAD bytes for the colormap
-    wxScopedPtr<wxImage> q_image;   // destination for quantized image
+    std::unique_ptr<wxImage> q_image;   // destination for quantized image
 
     // if <24bpp use quantization to reduce colors for *some* of the formats
     if ( (format == wxBMP_1BPP) || (format == wxBMP_4BPP) ||
@@ -288,11 +289,11 @@ bool wxBMPHandler::SaveDib(wxImage *image,
             // fill the destination too, it gives much nicer 4bpp images
 #if wxUSE_PALETTE
             wxPalette* paletteTmp;
-            wxQuantize::Quantize( *image, *q_image, &paletteTmp, quantize, 0,
+            wxQuantize::Quantize( *image, *q_image, &paletteTmp, quantize, nullptr,
                                   wxQUANTIZE_FILL_DESTINATION_IMAGE );
             palette.reset(paletteTmp);
 #else // !wxUSE_PALETTE
-            wxQuantize::Quantize( *image, *q_image, NULL, quantize, 0,
+            wxQuantize::Quantize( *image, *q_image, nullptr, quantize, 0,
                                   wxQUANTIZE_FILL_DESTINATION_IMAGE );
 #endif // wxUSE_PALETTE/!wxUSE_PALETTE
         }
@@ -360,7 +361,7 @@ bool wxBMPHandler::SaveDib(wxImage *image,
     const unsigned char* const data = q_image && q_image->IsOk()
                                         ? q_image->GetData()
                                         : image->GetData();
-    const unsigned char* const alpha = saveAlpha ? image->GetAlpha() : NULL;
+    const unsigned char* const alpha = saveAlpha ? image->GetAlpha() : nullptr;
 
     wxScopedArray<wxUint8> buffer(row_width);
     memset(buffer.get(), 0, row_width);
@@ -509,15 +510,15 @@ struct BMPDesc
 
     wxScopedArray<BMPPalette> paletteData;
 
-    int rmask, gmask, bmask, amask;
+    int rmask, gmask, bmask;
 };
 
 // Read the data in BMP format into the given image.
 //
-// The stream must be positioned at the start of the palette data for the
-// bitmaps using palettes or at the start of the bitmap data otherwise.
+// The stream must be positioned at the start of the bitmap data
+// (i.e., after any palette data)
 bool LoadBMPData(wxImage * image, const BMPDesc& desc,
-                 wxInputStream& stream, bool verbose)
+                 wxInputStream& stream, bool verbose, bool isBmp)
 {
     const int width = desc.width;
     int height = desc.height;
@@ -527,13 +528,12 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
 
     wxInt32         aDword, rmask = 0, gmask = 0, bmask = 0, amask = 0;
     int             rshift = 0, gshift = 0, bshift = 0, ashift = 0;
-    int             rbits = 0, gbits = 0, bbits = 0;
     wxInt8          bbuf[4];
     wxUint8         aByte;
     wxUint16        aWord;
 
     BMPPalette cmapMono[2];
-    BMPPalette* cmap = NULL;
+    BMPPalette* cmap = nullptr;
 
     bool isUpsideDown = true;
 
@@ -545,11 +545,11 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
 
     // destroy existing here instead of:
     image->Destroy();
-    image->Create(width, height);
+    // In most cases we will set every pixel explicitly, so there
+    // is no point clearing (but see exception for RLE below)
+    bool clear = false;
 
-    unsigned char *ptr = image->GetData();
-
-    if ( !ptr )
+    if (!image->Create(width, height, clear))
     {
         if ( verbose )
         {
@@ -558,24 +558,21 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
         return false;
     }
 
-    unsigned char *alpha;
-    if ( bpp == 32 )
+    unsigned char* ptr = image->GetData();
+
+    unsigned char* alpha = nullptr;
+    if (bpp == 32 && (!isBmp || desc.comp == BI_BITFIELDS))
     {
-        // tell the image to allocate an alpha buffer
         image->SetAlpha();
         alpha = image->GetAlpha();
-        if ( !alpha )
+        if (!alpha)
         {
-            if ( verbose )
+            if (verbose)
             {
                 wxLogError(_("BMP: Couldn't allocate memory."));
             }
             return false;
         }
-    }
-    else // no alpha
-    {
-        alpha = NULL;
     }
 
     // Reading the palette, if it exists:
@@ -619,6 +616,18 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
             gmask = desc.gmask;
             bmask = desc.bmask;
 
+            // Mimic Windows behaviour: alpha is applied only in 32bpp
+            // and if the colour masks are the same as for BI_RGB.
+            // Any alpha mask in the header is ignored.
+            if ( bpp == 32 &&
+                 rmask == 0x00FF0000 &&
+                 gmask == 0x0000FF00 &&
+                 bmask == 0x000000FF )
+            {
+                amask = 0xFF000000;
+                ashift = 24;
+            }
+
             // find shift amount (Least significant bit of mask)
             for (bit = bpp-1; bit>=0; bit--)
             {
@@ -629,16 +638,6 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                 if (rmask & (1 << bit))
                     rshift = bit;
             }
-            // Find number of bits in mask (MSB-LSB+1)
-            for (bit = 0; bit < bpp; bit++)
-            {
-                if (bmask & (1 << bit))
-                    bbits = bit-bshift+1;
-                if (gmask & (1 << bit))
-                    gbits = bit-gshift+1;
-                if (rmask & (1 << bit))
-                    rbits = bit-rshift+1;
-            }
         }
         else if ( bpp == 16 )
         {
@@ -648,9 +647,6 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
             rshift = 10;
             gshift = 5;
             bshift = 0;
-            rbits = 5;
-            gbits = 5;
-            bbits = 5;
         }
         else if ( bpp == 32 )
         {
@@ -663,38 +659,32 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
             rshift = 16;
             gshift = 8;
             bshift = 0;
-            rbits = 8;
-            gbits = 8;
-            bbits = 8;
         }
     }
 
-    /*
-     * Reading the image data
-     */
-    unsigned char *data = ptr;
-
-    /* set the whole image to the background color */
-    if ( bpp < 16 && (desc.comp == BI_RLE4 || desc.comp == BI_RLE8) )
+    // RLE-compressed bitmaps do not necessarily specify every pixel explicitly,
+    // as the delta escape sequence allows offsetting the current pixel position.
+    // They therefore have an implicit background, which is either:
+    //  1. The colour of the first entry in the colour table
+    //     (as done by LoadImage() with LR_CREATEDIBSECTION)
+    //  2. Black (as done by functions like LoadBitmap() and CreateDIBitmap())
+    // wxWidgets has historically implemented (1). See #23638
+    if ( desc.comp == BI_RLE4 || desc.comp == BI_RLE8 )
     {
-        for (int i = 0; i < width * height; i++)
+        unsigned char* pPix = ptr;
+        while ( pPix < ptr + width * height * 3 )
         {
-            *ptr++ = cmap[0].r;
-            *ptr++ = cmap[0].g;
-            *ptr++ = cmap[0].b;
+            *pPix++ = cmap[0].r;
+            *pPix++ = cmap[0].g;
+            *pPix++ = cmap[0].b;
         }
-        ptr = data;
     }
 
     int linesize = ((width * bpp + 31) / 32) * 4;
 
-    // flag indicating if we have any not fully transparent alpha values: this
-    // is used to account for the bitmaps which use 32bpp format (normally
-    // meaning that they have alpha channel) but have only zeroes in it so that
-    // without this hack they appear fully transparent -- and as this is
-    // unlikely intentional, we consider that they don't have alpha at all in
-    // this case (see #10915)
-    bool hasValidAlpha = false;
+    // flag used to detect fully transparent alpha channels, as
+    // Windows behavior for ICO is to ignore alpha in that case
+    bool hasNonTransparentAlpha = false;
 
     for ( int row = 0; row < height; row++ )
     {
@@ -764,6 +754,8 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                                 if ( !stream.IsOk() )
                                     return false;
                                 row += aByte;
+                                if (row >= height)
+                                    return false;
                                 line = isUpsideDown ? height - 1 - row : row;
                             }
                             else
@@ -867,6 +859,8 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                                 if ( !stream.IsOk() )
                                     return false;
                                 row += aByte;
+                                if (row >= height)
+                                    return false;
                                 line = isUpsideDown ? height - 1 - row : row;
                             }
                             else
@@ -930,15 +924,13 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                     return false;
                 wxUINT16_SWAP_ON_BE_IN_PLACE(aWord);
                 linepos += 2;
-                /* Use the masks and calculated amount of shift
-                   to retrieve the color data out of the word.  Then
-                   shift it left by (8 - number of bits) such that
-                   the image has the proper dynamic range */
-                temp = (unsigned char)(((aWord & rmask) >> rshift) << (8-rbits));
+
+                // scale color components to 8 bits
+                temp = rmask ? (aWord & rmask) * 255 / rmask : 0;
                 ptr[poffset] = temp;
-                temp = (unsigned char)(((aWord & gmask) >> gshift) << (8-gbits));
+                temp = gmask ? (aWord & gmask) * 255 / gmask : 0;
                 ptr[poffset + 1] = temp;
-                temp = (unsigned char)(((aWord & bmask) >> bshift) << (8-bbits));
+                temp = bmask ? (aWord & bmask) * 255 / bmask : 0;
                 ptr[poffset + 2] = temp;
                 column++;
             }
@@ -961,8 +953,8 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                     temp = (unsigned char)((aDword & amask) >> ashift);
                     alpha[line * width + column] = temp;
 
-                    if ( temp != wxALPHA_TRANSPARENT )
-                        hasValidAlpha = true;
+                    if (temp != wxALPHA_TRANSPARENT)
+                        hasNonTransparentAlpha = true;
                 }
                 column++;
             }
@@ -977,10 +969,9 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
 
     image->SetMask(false);
 
-    // check if we had any valid alpha values in this bitmap
-    if ( alpha && !hasValidAlpha )
+    if (alpha && !isBmp && !hasNonTransparentAlpha)
     {
-        // we didn't, so finally discard the alpha channel completely
+        // alpha is ignored for ICO if it is all zeros
         image->ClearAlpha();
     }
 
@@ -1064,6 +1055,8 @@ bool wxBMPHandler::LoadDib(wxImage *image, wxInputStream& stream,
         }
         return false;
     }
+    if (desc.width <= 0 || desc.height == 0)
+        return false;
 
     if ( !stream.ReadAll(&aWord, 2) )
         return false;
@@ -1206,15 +1199,18 @@ bool wxBMPHandler::LoadDib(wxImage *image, wxInputStream& stream,
         if ( desc.comp == BI_BITFIELDS )
         {
             // Read the mask values from the header.
-            if ( !stream.ReadAll(dbuf, 4 * 4) )
+            if ( !stream.ReadAll(dbuf, 4 * 3) )
                 return false;
 
-            hdrBytesRead += 4 * 4;
+            hdrBytesRead += 4 * 3;
 
             desc.rmask = wxINT32_SWAP_ON_BE(dbuf[0]);
             desc.gmask = wxINT32_SWAP_ON_BE(dbuf[1]);
             desc.bmask = wxINT32_SWAP_ON_BE(dbuf[2]);
-            desc.amask = wxINT32_SWAP_ON_BE(dbuf[3]);
+
+            // There will also be an alpha mask if (and only if) the header is
+            // V4 or V5, so we mustn't try to read it if we don't have one of
+            // those. But it's not used anywhere in any case.
         }
 
         // Now that we've read everything we needed from the header, advance
@@ -1229,6 +1225,10 @@ bool wxBMPHandler::LoadDib(wxImage *image, wxInputStream& stream,
     // We must have read the header entirely by now and we also read the 14
     // bytes preceding it: "BM" signature and 3 other DWORDs.
     wxFileOffset bytesRead = 14 + hdrSize;
+
+    // We might have read colour masks.
+    if ( desc.comp == BI_BITFIELDS )
+        bytesRead += 12;
 
     // We must have a palette for 1bpp, 4bpp and 8bpp bitmaps.
     if (desc.ncolors == 0 && desc.bpp < 16)
@@ -1272,7 +1272,7 @@ bool wxBMPHandler::LoadDib(wxImage *image, wxInputStream& stream,
     }
 
     //read DIB; this is the BMP image or the XOR part of an icon image
-    if ( !LoadBMPData(image, desc, stream, verbose) )
+    if ( !LoadBMPData(image, desc, stream, verbose, IsBmp) )
     {
         if (verbose)
         {
@@ -1293,7 +1293,7 @@ bool wxBMPHandler::LoadDib(wxImage *image, wxInputStream& stream,
 
         //there is no palette, so we will create one
         wxImage mask;
-        if ( !LoadBMPData(&mask, descMask, stream, verbose) )
+        if ( !LoadBMPData(&mask, descMask, stream, verbose, IsBmp) )
         {
             if (verbose)
             {

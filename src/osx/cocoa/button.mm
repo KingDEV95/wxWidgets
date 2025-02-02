@@ -2,7 +2,6 @@
 // Name:        src/osx/cocoa/button.mm
 // Purpose:     wxButton
 // Author:      Stefan Csomor
-// Modified by:
 // Created:     1998-01-01
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -176,9 +175,7 @@ NSButton *wxButtonCocoaImpl::GetNSButton() const
 // Set bezel style depending on the wxBORDER_XXX flags specified by the style
 // and also accounting for the label (bezels are different for multiline
 // buttons and normal ones) and the ID (special bezel is used for help button).
-//
-// This is extern because it's also used in src/osx/cocoa/tglbtn.mm.
-extern "C"
+static
 void
 SetBezelStyleFromBorderFlags(NSButton *v,
                              long style,
@@ -196,7 +193,7 @@ SetBezelStyleFromBorderFlags(NSButton *v,
     }
     else
     {
-        // We can't use rounded bezel styles neither for multiline buttons nor
+        // We can't use rounded bezel styles either for multiline buttons or
         // for buttons containing (big) icons as they are only meant to be used
         // at certain sizes, so the style used depends on whether the label is
         // single or multi line.

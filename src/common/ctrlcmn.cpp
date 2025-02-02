@@ -2,7 +2,6 @@
 // Name:        src/common/ctrlcmn.cpp
 // Purpose:     wxControl common interface
 // Author:      Vadim Zeitlin
-// Modified by:
 // Created:     26.07.99
 // Copyright:   (c) wxWidgets team
 // Licence:     wxWindows licence
@@ -278,7 +277,7 @@ namespace
 
 struct EllipsizeCalculator
 {
-    EllipsizeCalculator(const wxString& s, const wxDC& dc,
+    EllipsizeCalculator(const wxString& s, const wxReadOnlyDC& dc,
                         int maxFinalWidthPx, int replacementWidthPx,
                         int flags)
         :
@@ -325,10 +324,9 @@ struct EllipsizeCalculator
                     else // Last character is an ampersand.
                     {
                         // This ampersand is removed by RemoveMnemonics() and
-                        // won't be displayed when this string is drawn
-                        // neither, so we intentionally don't use it for our
-                        // calculations neither -- just account for this in the
-                        // assert below.
+                        // won't be displayed when this string is drawn, so we
+                        // intentionally don't use it for our calculations --
+                        // just account for this in the assert below.
                         expectedOffsetsCount--;
                     }
                 }
@@ -447,7 +445,7 @@ struct EllipsizeCalculator
 
     // inputs:
     wxString m_str;
-    const wxDC& m_dc;
+    const wxReadOnlyDC& m_dc;
     int m_maxFinalWidthPx;
     int m_replacementWidthPx;
     wxArrayInt m_charOffsetsPx;
@@ -455,7 +453,7 @@ struct EllipsizeCalculator
     bool m_isOk;
 };
 
-wxString DoEllipsizeSingleLine(const wxString& curLine, const wxDC& dc,
+wxString DoEllipsizeSingleLine(const wxString& curLine, const wxReadOnlyDC& dc,
                                wxEllipsizeMode mode, int maxFinalWidthPx,
                                int replacementWidthPx, int flags)
 {
@@ -573,7 +571,7 @@ wxString DoEllipsizeSingleLine(const wxString& curLine, const wxDC& dc,
 
 
 /* static */
-wxString wxControlBase::Ellipsize(const wxString& label, const wxDC& dc,
+wxString wxControlBase::Ellipsize(const wxString& label, const wxReadOnlyDC& dc,
                                   wxEllipsizeMode mode, int maxFinalWidth,
                                   int flags)
 {

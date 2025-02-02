@@ -1,15 +1,27 @@
 #!/bin/sh
 #
-# This script is used by GitHub to install the dependencies
+# This script is used by CI jobs to install the dependencies
 # before building wxWidgets but can also be run by hand if necessary (but
-# currently it only works for Ubuntu versions used by the CI builds).
+# currently it only works for the OS versions used by the CI builds).
+#
+# WX_EXTRA_PACKAGES environment variable may be predefined to contain extra
+# packages to install (in an OS-specific way) in addition to the required ones.
 
 set -e
 
-SUDO=sudo
-
 case $(uname -s) in
     Linux)
+        # Use sudo if it's available or assume root otherwise.
+        if command -v sudo > /dev/null; then
+            SUDO=sudo
+        else
+            if [ `id -u` -ne 0 ]; then
+                echo "Please install sudo or run as root (and not user `id -u`)." >& 2
+                exit 1
+            fi
+        fi
+
+        # Debian/Ubuntu
         if [ -f /etc/apt/sources.list ]; then
             # Show information about the repositories and priorities used.
             echo 'APT sources used:'
@@ -28,7 +40,13 @@ case $(uname -s) in
                 return $rc
             }
 
-            codename=$(lsb_release --codename --short)
+            # We could install lsb-release package if the command is missing,
+            # but we currently only actually use codename on the systems where
+            # it's guaranteed to be installed, so don't bother doing it for now.
+            if command -v lsb_release > /dev/null; then
+                codename=$(lsb_release --codename --short)
+            fi
+
             if [ "$wxUSE_ASAN" = 1 ]; then
                 # Enable the `-dbgsym` repositories.
                 echo "deb http://ddebs.ubuntu.com ${codename} main restricted universe multiverse
@@ -47,7 +65,6 @@ case $(uname -s) in
 
             case "$wxCONFIGURE_FLAGS" in
                 *--with-directfb*) libtoolkit_dev='libdirectfb-dev'         ;;
-                *--with-motif*)    libtoolkit_dev='libmotif-dev libxmu-dev' ;;
                 *--with-qt*)       libtoolkit_dev='qtdeclarative5-dev libqt5opengl5-dev';;
                 *--with-x11*)      extra_deps='libpango1.0-dev' ;;
                 *--disable-gui*)   ;;
@@ -57,7 +74,7 @@ case $(uname -s) in
                             extra_deps='libwebkit2gtk-4.0-dev libgspell-1-dev'
                             ;;
                         2)  libtoolkit_dev=libgtk2.0-dev
-                            extra_deps='libwebkitgtk-dev'
+                            extra_deps='libwebkitgtk-dev libxkbcommon-dev'
                             ;;
                         *)  echo 'Please specify wxGTK_VERSION explicitly.' >&2
                             exit 1
@@ -78,10 +95,12 @@ case $(uname -s) in
 
                     extra_deps="$extra_deps \
                             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-                            libglu1-mesa-dev"
+                            "
             esac
 
-            pkg_install="$pkg_install $libtoolkit_dev gdb"
+            # Install locales used by our tests to run all the tests instead of
+            # skipping them.
+            pkg_install="$pkg_install $libtoolkit_dev gdb locales-all ${WX_EXTRA_PACKAGES}"
 
             extra_deps="$extra_deps libcurl4-openssl-dev libsecret-1-dev libnotify-dev"
             for pkg in $extra_deps; do
@@ -107,10 +126,14 @@ case $(uname -s) in
                 touch wx_dbgsym_available
             fi
         fi
+
+        if [ -f /etc/redhat-release ]; then
+            dnf install -y ${WX_EXTRA_PACKAGES} expat-devel findutils g++ git-core gspell-devel gstreamer1-plugins-base-devel gtk3-devel make libcurl-devel libjpeg-devel libnotify-devel libpng-devel libSM-devel libsecret-devel libtiff-devel SDL-devel webkit2gtk4.1-devel zlib-devel
+        fi
         ;;
 
     FreeBSD)
-        pkg install -q -y gspell gstreamer1 gtk3 jpeg-turbo libnotify libsecret mesa-libs pkgconf png tiff webkit2-gtk3
+        pkg install -q -y ${WX_EXTRA_PACKAGES} gspell gstreamer1 gtk3 jpeg-turbo libnotify libsecret mesa-libs pkgconf png tiff webkit2-gtk3
         ;;
 
     Darwin)

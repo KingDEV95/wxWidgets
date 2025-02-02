@@ -182,6 +182,9 @@
     <ClCompile Include="events\propagation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="controls\propgridtest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="controls\radioboxtest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -257,6 +260,9 @@
     <ClCompile Include="controls\textentrytest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="misc\textwrap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="controls\togglebuttontest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -293,6 +299,9 @@
     <ClCompile Include="xml\xrctest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="graphics\clipper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="graphics\clippingbox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -319,7 +328,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\samples\sample.rc">
+    <ResourceCompile Include=".\test.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

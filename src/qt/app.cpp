@@ -14,12 +14,15 @@
 #include "wx/qt/private/converter.h"
 #include <QtCore/QStringList>
 #include <QtWidgets/QApplication>
+#include <QSurfaceFormat>
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxApp, wxEvtHandler);
 
 wxApp::wxApp()
 {
     m_qtArgc = 0;
+
+    WXAppConstructed();
 }
 
 
@@ -32,9 +35,9 @@ wxApp::~wxApp()
     }
 }
 
-bool wxApp::Initialize( int &argc, wxChar **argv )
+bool wxApp::Initialize( int& argc_, wxChar** argv_ )
 {
-    if ( !wxAppBase::Initialize( argc, argv ))
+    if ( !wxAppBase::Initialize( argc_, argv_ ))
         return false;
 
     wxConvCurrent = &wxConvUTF8;
@@ -46,20 +49,25 @@ bool wxApp::Initialize( int &argc, wxChar **argv )
     // TODO: Check whether new/strdup etc. can be replaced with std::vector<>.
 
     // Clone and store arguments
-    m_qtArgv.reset(new char* [argc + 1]);
-    for ( int i = 0; i < argc; i++ )
+    m_qtArgv.reset(new char* [argc_ + 1]);
+    for ( int i = 0; i < argc_; i++ )
     {
-        m_qtArgv[i] = wxStrdupA(wxConvUTF8.cWX2MB(argv[i]));
+        m_qtArgv[i] = wxStrdupA(wxConvUTF8.cWX2MB(argv_[i]));
     }
-    m_qtArgv[argc] = NULL;
-    m_qtArgc = argc;
+    m_qtArgv[argc_] = nullptr;
+    m_qtArgc = argc_;
+
+    // Use SingleBuffer mode by default to reduce latency.
+    QSurfaceFormat format;
+    format.setSwapBehavior(QSurfaceFormat::SwapBehavior::SingleBuffer);
+    QSurfaceFormat::setDefaultFormat(format);
 
     m_qtApplication.reset(new QApplication(m_qtArgc, m_qtArgv.get()));
 
     // Use the args returned by Qt as it may have deleted (processed) some of them
     // Using QApplication::arguments() forces argument processing
     QStringList qtArgs = m_qtApplication->arguments();
-    if ( qtArgs.size() != argc )
+    if ( qtArgs.size() != argc_ )
     {
         /* As per Qt 4.6: Here, qtArgc and qtArgv have been modified and can
          * be used to replace our args (with Qt-flags removed). Also, they can be
@@ -68,19 +76,15 @@ bool wxApp::Initialize( int &argc, wxChar **argv )
          * ourselves and only delete then after the QApplication is deleted */
 
         // Qt changed the arguments
-        delete [] argv;
-        argv = new wxChar *[qtArgs.size() + 1];
+        delete [] argv_;
+        argv_ = new wxChar *[qtArgs.size() + 1];
         for ( int i = 0; i < qtArgs.size(); i++ )
         {
-#if wxUSE_UNICODE
-            argv[i] = wxStrdupW( wxConvUTF8.cMB2WX( qtArgs[i].toUtf8().data() ) );
-#else // wxUSE_UNICODE
-            argv[i] = wxStrdupA( wxConvUTF8.cMB2WX( qtArgs[i].toUtf8().data() ) );
-#endif // wxUSE_UNICODE
+            argv_[i] = wxStrdupW( wxConvUTF8.cMB2WX( qtArgs[i].toUtf8().data() ) );
         }
 
-        argc = m_qtApplication->arguments().size();
-        argv[argc] = NULL;
+        argc_ = m_qtApplication->arguments().size();
+        argv_[argc_] = nullptr;
     }
 
     return true;

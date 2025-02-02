@@ -12,10 +12,10 @@ function(wx_webview_copy_webview2_loader target)
         return()
     endif()
 
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set(WEBVIEW2_ARCH x86)
+    if(wxPLATFORM_ARCH)
+        set(WEBVIEW2_ARCH ${wxPLATFORM_ARCH})
     else()
-        set(WEBVIEW2_ARCH x64)
+        set(WEBVIEW2_ARCH x86)
     endif()
 
     add_custom_command(TARGET ${target} POST_BUILD
@@ -46,11 +46,11 @@ if(APPLE)
 elseif(WXMSW)
     if(wxUSE_WEBVIEW_EDGE)
         # Update the following variables if updating WebView2 SDK
-        set(WEBVIEW2_VERSION "1.0.705.50")
+        set(WEBVIEW2_VERSION "1.0.1722.45")
         set(WEBVIEW2_URL "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/${WEBVIEW2_VERSION}")
-        set(WEBVIEW2_SHA256 "6a34bb553e18cfac7297b4031f3eac2558e439f8d16a45945c22945ac404105d")
+        set(WEBVIEW2_SHA256 "10d78e9e11c7851f0a8bf0dd4c22bbf6383de45bd337e1be42240b103812947d")
 
-        set(WEBVIEW2_DEFAULT_PACKAGE_DIR "${CMAKE_BINARY_DIR}/packages/Microsoft.Web.WebView2.${WEBVIEW2_VERSION}")
+        set(WEBVIEW2_DEFAULT_PACKAGE_DIR "${CMAKE_CURRENT_BINARY_DIR}/packages/Microsoft.Web.WebView2.${WEBVIEW2_VERSION}")
 
         if(NOT EXISTS ${WEBVIEW2_PACKAGE_DIR})
             unset(WEBVIEW2_PACKAGE_DIR CACHE)
@@ -67,11 +67,11 @@ elseif(WXMSW)
             set(WEBVIEW2_PACKAGE_DIR ${WEBVIEW2_DEFAULT_PACKAGE_DIR} CACHE PATH "WebView2 SDK PATH" FORCE)
             file(DOWNLOAD
                 ${WEBVIEW2_URL}
-                ${CMAKE_BINARY_DIR}/webview2.nuget
+                ${CMAKE_CURRENT_BINARY_DIR}/webview2.nuget
                 EXPECTED_HASH SHA256=${WEBVIEW2_SHA256})
             file(MAKE_DIRECTORY ${WEBVIEW2_PACKAGE_DIR})
             execute_process(COMMAND
-                "${CMAKE_COMMAND}" -E tar x "${CMAKE_BINARY_DIR}/webview2.nuget"
+                "${CMAKE_COMMAND}" -E tar x "${CMAKE_CURRENT_BINARY_DIR}/webview2.nuget"
                 WORKING_DIRECTORY "${WEBVIEW2_PACKAGE_DIR}"
             )
         endif()
@@ -118,10 +118,7 @@ if(WXGTK AND wxUSE_WEBVIEW_WEBKIT2)
     set_target_properties(wxwebkit2_ext PROPERTIES NO_SONAME 1)
 
     # Change output name to match expected name in webview_webkit2.cpp: webkit2_ext*
-    set(lib_unicode)
-    if(wxUSE_UNICODE)
-        set(lib_unicode "u")
-    endif()
+    set(lib_unicode "u")
 
     set(lib_rls)
     set(lib_dbg)
