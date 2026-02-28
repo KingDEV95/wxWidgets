@@ -19,7 +19,7 @@ Getting the files
 First, you need to get the correct files. You will always need the
 `wxWidgets-3.3.2-headers.7z` one but the "Dev" and the "ReleaseDLL"
 files depend on your compiler: for example, for MSVS you will need
-`wxMSW-3.3.2_vc14x_x64_Dev.7z` and `wxMSW-3.3.1_vc14x_x64_ReleaseDLL.7z`, but
+`wxMSW-3.3.2_vc14x_x64_Dev.7z` and `wxMSW-3.3.2_vc14x_x64_ReleaseDLL.7z`, but
 if you are using gcc, you will need `wxMSW-3.3.2_gcc1510_x64_Dev.7z` and
 `wxMSW-3.3.2_gcc1510_x64_ReleaseDLL.7z`.
 
